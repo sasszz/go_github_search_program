@@ -4,6 +4,11 @@ This program allows you to search for GitHub repositories using a keyword. It us
 
 <hr>
 
+### NOTE
+THis program is in beta. It currently only displays a Read Only printout og the Github API search results in the terminal. Next step would be to create an interactive text based elements to create a UI on the command line.
+
+<hr>
+
 ### Technologies
 ![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
 ![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white)
