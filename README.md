@@ -4,8 +4,7 @@ This program allows you to search for GitHub repositories using a keyword. It us
 
 <hr>
 
-<img width="1058" alt="Screenshot 2024-10-03 at 10 56 11 AM" src="https://github.com/user-attachments/assets/513ee90e-f2a9-4458-8859-b9098c5ae4c8">
-
+![fasterdemo](https://github.com/user-attachments/assets/4f48cefd-68a0-4d97-8186-c92bdc01d49d)
 
 <hr>
 
