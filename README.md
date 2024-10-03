@@ -1,6 +1,6 @@
 # GitHub Repository Search Program
 
-This program allows you to search for GitHub repositories using a keyword. It uses the GitHub API and displays repository details such as the name, owner, stars, and description. The program is written in Go and requires a GitHub personal access token to authenticate API requests.
+This program allows you to search for GitHub repositories using a keyword. It uses the GitHub API and displays repository details such as the name, owner, stars, and # of issues. The program is written in Go and requires a GitHub personal access token to authenticate API requests.
 
 <hr>
 
@@ -26,9 +26,9 @@ This program allows you to search for GitHub repositories using a keyword. It us
 The program is a simple command-line tool that does the following:
 1. Loads environment variables from a `.env` file using the `godotenv` package.
 2. Authenticates with the GitHub API using a personal access token.
-3. Opens a Text Based User Interface (TUI) in the terminal with a search box and button.
+3. Opens a Text Based User Interface (TUI) in the terminal with a search box and button using TCell package.
 4. Searches GitHub repositories based on the search term provided in the TUI.
-5. Displays the repository name, owner, stars, and description for each result.
+5. Displays the repository name, owner, stars, and # of issues for each result.
 
 <hr>
 
