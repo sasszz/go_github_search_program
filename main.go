@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"gx/components" // Import the components package
+	"gx/components"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/google/go-github/v65/github"
@@ -24,26 +24,27 @@ func main() {
 
 	searchTerm := ""
 	cursorPosition := 0
-	selectedButton := 0 // 0 for search button
-
-	running := true
+	startIndex := 0
+	focusedElement := 0  // 0 for search box, 1 for search button, 2 for results list
+	displayHeight := 10
+	loading := false
 	showResults := false
 	repos := []*github.Repository{}
 
-	for running {
+	for running := true; running; {
 		s.Clear()
 
-		// Draw search box and button
-		components.DrawTextBox(s, 2, 2, 30, searchTerm, defStyle)
-		components.DrawButton(s, 35, 2, 10, "Search", defStyle, selectedButton == 0)
+		components.DrawTextBox(s, 2, 2, 50, searchTerm, defStyle)
+		components.DrawButton(s, 55, 2, 10, "Search", defStyle, focusedElement == 1)
 
-		if showResults {
-			components.DrawGitHubRepositories(s, 0, 5, 50, 10, repos, 0, 0, defStyle)
+		if loading {
+			components.DrawText(s, 2, 5, "Data loading... This can take up to 30 seconds.", defStyle)
+		} else if showResults {
+			components.DrawGitHubRepositories(s, 0, 5, 70, displayHeight, repos, startIndex, cursorPosition, defStyle)
 		}
 
 		s.Show()
 
-		// Poll for events
 		ev := s.PollEvent()
 
 		switch ev := ev.(type) {
@@ -51,37 +52,50 @@ func main() {
 			switch ev.Key() {
 			case tcell.KeyEscape, tcell.KeyCtrlC:
 				running = false
-			case tcell.KeyEnter:
-				// Submit search term when button is selected
-				if selectedButton == 0 {
-					client := getGitHubClient()
-					var err error
-					repos, err = searchRepositories(client, searchTerm)
-					if err != nil {
-						log.Fatalf("Error searching repositories: %v", err)
-					}
-					showResults = true
-				}
-			case tcell.KeyUp:
-				// Move focus between buttons and text box
-				if selectedButton > 0 {
-					selectedButton--
-				}
-			case tcell.KeyDown:
-				// Move focus between buttons and text box
-				if selectedButton < 1 {
-					selectedButton++
+			case tcell.KeyTab:
+				if showResults {
+					focusedElement = (focusedElement + 1) % 3
+				} else {
+					focusedElement = (focusedElement + 1) % 2
 				}
 			case tcell.KeyBackspace, tcell.KeyBackspace2:
-				// Handle backspace in the search term
-				if cursorPosition > 0 && len(searchTerm) > 0 {
+				if focusedElement == 0 && len(searchTerm) > 0 {
 					searchTerm = searchTerm[:len(searchTerm)-1]
-					cursorPosition--
 				}
 			case tcell.KeyRune:
-				// Handle text input into the search term box
-				searchTerm += string(ev.Rune())
-				cursorPosition++
+				if focusedElement == 0 {
+					searchTerm += string(ev.Rune())
+				}
+			case tcell.KeyEnter:
+				if focusedElement == 1 {
+					loading = true
+					go func() {
+						client := getGitHubClient()
+						var err error
+						repos, err = searchRepositories(client, searchTerm)
+						if err != nil {
+							log.Fatalf("Error searching repositories: %v", err)
+						}
+						loading = false
+						showResults = true
+						cursorPosition = 0
+						startIndex = 0
+					}()
+				}
+			case tcell.KeyUp:
+				if focusedElement == 2 && cursorPosition > 0 {
+					cursorPosition--
+					if cursorPosition < startIndex {
+						startIndex--
+					}
+				}
+			case tcell.KeyDown:
+				if focusedElement == 2 && cursorPosition < len(repos)-1 {
+					cursorPosition++
+					if cursorPosition >= startIndex+displayHeight {
+						startIndex++
+					}
+				}
 			}
 		case *tcell.EventResize:
 			s.Sync()
