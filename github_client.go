@@ -10,7 +10,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// getGitHubClient initializes and returns a GitHub client using an OAuth token loaded from the .env file.
+// GetGitHubClient initializes and returns a GitHub client using an OAuth token loaded from the .env file.
 func getGitHubClient() *github.Client {
 	err := godotenv.Load()
 	if err != nil {
@@ -32,7 +32,7 @@ func getGitHubClient() *github.Client {
 	return client
 }
 
-// searchRepositories searches for GitHub repositories based on the provided query.
+// SearchRepositories searches for GitHub repositories based on the provided query.
 func searchRepositories(client *github.Client, query string) ([]*github.Repository, error) {
 	ctx := context.Background()
 	opts := &github.SearchOptions{

@@ -1,50 +1,15 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"os"
+
+	"gx/components" // Import the components package
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/google/go-github/v65/github"
 )
 
-func drawText(s tcell.Screen, x, y int, text string, style tcell.Style) {
-	for i, r := range []rune(text) {
-		s.SetContent(x+i, y, r, nil, style)
-	}
-}
-
-func displayRepositories(s tcell.Screen, repos []*github.Repository, style tcell.Style) {
-	s.Clear()
-	y := 0
-	for _, repo := range repos {
-		text := fmt.Sprintf("Name: %s | Owner: %s | Stars: %d | Description: %s",
-			repo.GetName(), repo.Owner.GetLogin(), repo.GetStargazersCount(), repo.GetDescription())
-		drawText(s, 0, y, text, style)
-		y++
-		if y >= 20 {
-			break
-		}
-	}
-	s.Show()
-}
-
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: gx <search_term>")
-		return
-	}
-
-	searchTerm := os.Args[1]
-	client := getGitHubClient()
-	repos, err := searchRepositories(client, searchTerm)
-	if err != nil {
-		log.Fatalf("Error searching repositories: %v", err)
-	}
-
-	defStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorWhite)
-
 	s, err := tcell.NewScreen()
 	if err != nil {
 		log.Fatalf("%+v", err)
@@ -52,22 +17,74 @@ func main() {
 	if err := s.Init(); err != nil {
 		log.Fatalf("%+v", err)
 	}
+	defer s.Fini()
+
+	defStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorWhite)
 	s.SetStyle(defStyle)
-	s.Clear()
 
-	displayRepositories(s, repos, defStyle)
+	searchTerm := ""
+	cursorPosition := 0
+	selectedButton := 0 // 0 for search button
 
-	// Event loop
-	for {
+	running := true
+	showResults := false
+	repos := []*github.Repository{}
+
+	for running {
+		s.Clear()
+
+		// Draw search box and button
+		components.DrawTextBox(s, 2, 2, 30, searchTerm, defStyle)
+		components.DrawButton(s, 35, 2, 10, "Search", defStyle, selectedButton == 0)
+
+		if showResults {
+			components.DrawGitHubRepositories(s, 0, 5, 50, 10, repos, 0, 0, defStyle)
+		}
+
+		s.Show()
+
+		// Poll for events
 		ev := s.PollEvent()
+
 		switch ev := ev.(type) {
+		case *tcell.EventKey:
+			switch ev.Key() {
+			case tcell.KeyEscape, tcell.KeyCtrlC:
+				running = false
+			case tcell.KeyEnter:
+				// Submit search term when button is selected
+				if selectedButton == 0 {
+					client := getGitHubClient()
+					var err error
+					repos, err = searchRepositories(client, searchTerm)
+					if err != nil {
+						log.Fatalf("Error searching repositories: %v", err)
+					}
+					showResults = true
+				}
+			case tcell.KeyUp:
+				// Move focus between buttons and text box
+				if selectedButton > 0 {
+					selectedButton--
+				}
+			case tcell.KeyDown:
+				// Move focus between buttons and text box
+				if selectedButton < 1 {
+					selectedButton++
+				}
+			case tcell.KeyBackspace, tcell.KeyBackspace2:
+				// Handle backspace in the search term
+				if cursorPosition > 0 && len(searchTerm) > 0 {
+					searchTerm = searchTerm[:len(searchTerm)-1]
+					cursorPosition--
+				}
+			case tcell.KeyRune:
+				// Handle text input into the search term box
+				searchTerm += string(ev.Rune())
+				cursorPosition++
+			}
 		case *tcell.EventResize:
 			s.Sync()
-		case *tcell.EventKey:
-			if ev.Key() == tcell.KeyEscape || ev.Key() == tcell.KeyCtrlC {
-				s.Fini()
-				return
-			}
 		}
 	}
 }
