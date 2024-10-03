@@ -1,67 +1,73 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/google/go-github/v65/github"
-	"github.com/joho/godotenv"
-	"golang.org/x/oauth2"
 )
 
-// getGitHubClient initializes and returns a GitHub client using an OAuth token loaded from the .env file.
-func getGitHubClient() *github.Client {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+func drawText(s tcell.Screen, x, y int, text string, style tcell.Style) {
+	for i, r := range []rune(text) {
+		s.SetContent(x+i, y, r, nil, style)
+	}
+}
+
+func displayRepositories(s tcell.Screen, repos []*github.Repository, style tcell.Style) {
+	s.Clear()
+	y := 0
+	for _, repo := range repos {
+		text := fmt.Sprintf("Name: %s | Owner: %s | Stars: %d | Description: %s",
+			repo.GetName(), repo.Owner.GetLogin(), repo.GetStargazersCount(), repo.GetDescription())
+		drawText(s, 0, y, text, style)
+		y++
+		if y >= 20 {
+			break
+		}
+	}
+	s.Show()
+}
+
+func main() {
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: gx <search_term>")
+		return
 	}
 
-    token := os.Getenv("GITHUB_TOKEN")
+	searchTerm := os.Args[1]
+	client := getGitHubClient()
+	repos, err := searchRepositories(client, searchTerm)
+	if err != nil {
+		log.Fatalf("Error searching repositories: %v", err)
+	}
 
-    if token == "" {
-        log.Fatal("Error: GITHUB_TOKEN is not set in the environment")
-    }
+	defStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorWhite)
 
-    ctx := context.Background()
-    ts := oauth2.StaticTokenSource(
-        &oauth2.Token{AccessToken: token},
-    )
-    tc := oauth2.NewClient(ctx, ts)
+	s, err := tcell.NewScreen()
+	if err != nil {
+		log.Fatalf("%+v", err)
+	}
+	if err := s.Init(); err != nil {
+		log.Fatalf("%+v", err)
+	}
+	s.SetStyle(defStyle)
+	s.Clear()
 
-    client := github.NewClient(tc)
-    return client
-}
+	displayRepositories(s, repos, defStyle)
 
-// searchRepositories searches for GitHub repositories based on the provided query, sorted by stars, and prints the results.
-func searchRepositories(client *github.Client, query string) {
-    ctx := context.Background()
-    opts := &github.SearchOptions{
-        Sort:  "stars",
-        Order: "desc",
-    }
-
-    result, _, err := client.Search.Repositories(ctx, query, opts)
-    if err != nil {
-        log.Fatalf("Error searching repositories: %v", err)
-    }
-
-    fmt.Printf("Found %d repositories:\n", result.GetTotal())
-    for _, repo := range result.Repositories {
-        fmt.Printf("Name: %s\nOwner: %s\nStars: %d\nDescription: %s\n\n",
-            repo.GetName(), repo.Owner.GetLogin(), repo.GetStargazersCount(), repo.GetDescription())
-    }
-}
-
-// main function parses the search term from command-line arguments, creates a GitHub client, and calls the search function.
-func main() {
-    if len(os.Args) < 2 {
-        fmt.Println("Usage: gx <search_term>")
-        return
-    }
-
-    searchTerm := os.Args[1]
-    client := getGitHubClient()
-    searchRepositories(client, searchTerm)
+	// Event loop
+	for {
+		ev := s.PollEvent()
+		switch ev := ev.(type) {
+		case *tcell.EventResize:
+			s.Sync()
+		case *tcell.EventKey:
+			if ev.Key() == tcell.KeyEscape || ev.Key() == tcell.KeyCtrlC {
+				s.Fini()
+				return
+			}
+		}
+	}
 }
