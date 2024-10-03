@@ -4,8 +4,8 @@ This program allows you to search for GitHub repositories using a keyword. It us
 
 <hr>
 
-### NOTE
-THis program is in beta. It currently only displays a Read Only printout og the Github API search results in the terminal. Next step would be to create an interactive text based elements to create a UI on the command line.
+<img width="1058" alt="Screenshot 2024-10-03 at 10 56 11 AM" src="https://github.com/user-attachments/assets/513ee90e-f2a9-4458-8859-b9098c5ae4c8">
+
 
 <hr>
 
@@ -27,8 +27,9 @@ THis program is in beta. It currently only displays a Read Only printout og the 
 The program is a simple command-line tool that does the following:
 1. Loads environment variables from a `.env` file using the `godotenv` package.
 2. Authenticates with the GitHub API using a personal access token.
-3. Searches GitHub repositories based on a query provided as a command-line argument.
-4. Displays the repository name, owner, stars, and description for each result.
+3. Opens a Text Based User Interface (TUI) in the terminal with a search box and button.
+4. Searches GitHub repositories based on the search term provided in the TUI.
+5. Displays the repository name, owner, stars, and description for each result.
 
 <hr>
 
@@ -37,6 +38,7 @@ The program is a simple command-line tool that does the following:
 Install dependencies
  ```
 go get github.com/joho/godotenv
+go get github.com/gdamore/tcell/v2
 go get github.com/google/go-github/v65/github
 go get golang.org/x/oauth2
 ```
@@ -51,28 +53,7 @@ GITHUB_TOKEN=your_actual_token_here
 
 Run the program in the terminal
 ```
-go run main.go <search_term>
-```
-
-<hr>
-
-### Example Output
-
-```bash
-$ go run main.go kubernetes
-
-Loaded token from .env: your_actual_token_here
-Found 1000 repositories:
-Name: kubernetes
-Owner: kubernetes
-Stars: 84000
-Description: Production-Grade Container Scheduling and Management
-
-Name: minikube
-Owner: kubernetes
-Stars: 21000
-Description: Run Kubernetes locally
-...
+go run main.go github_client.go
 ```
 
 <hr>
