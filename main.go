@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"gx/components"
 
@@ -25,7 +26,7 @@ func main() {
 	searchTerm := ""
 	cursorPosition := 0
 	startIndex := 0
-	focusedElement := 0  // 0 for search box, 1 for search button, 2 for results list
+	focusedElement := 0 // 0 for search box, 1 for search button, 2 for results list
 	displayHeight := 10
 	loading := false
 	showResults := false
@@ -69,7 +70,9 @@ func main() {
 			case tcell.KeyEnter:
 				if focusedElement == 1 {
 					loading = true
+					s.Sync() // Force redraw immediately after entering "Search"
 					go func() {
+						time.Sleep(2 * time.Second) // Simulate network delay
 						client := getGitHubClient()
 						var err error
 						repos, err = searchRepositories(client, searchTerm)
@@ -80,6 +83,8 @@ func main() {
 						showResults = true
 						cursorPosition = 0
 						startIndex = 0
+						focusedElement = 2 // Automatically focus on the results
+						s.PostEvent(tcell.NewEventInterrupt(nil)) // Force screen refresh
 					}()
 				}
 			case tcell.KeyUp:
@@ -99,6 +104,8 @@ func main() {
 			}
 		case *tcell.EventResize:
 			s.Sync()
+		case *tcell.EventInterrupt:
+			// Event to forcefully redraw the screen when search completes
 		}
 	}
 }
